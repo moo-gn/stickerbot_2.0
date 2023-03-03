@@ -333,7 +333,7 @@ async def autocomplete(ctx: discord.AutocompleteContext):
 #slash commands -----------------------------------------------------------------------------------------------------------
 
 #sticker fetch
-@bot.slash_command(guild_ids=[559637589632483339] , description="fetch a sticker")
+@bot.slash_command(guild_ids=[credentials.guild_id] , description="fetch a sticker")
 async def sticker(ctx :discord.context, name : discord.Option(str, autocomplete=autocomplete)):
     try:
         await ctx.defer()
@@ -344,21 +344,21 @@ async def sticker(ctx :discord.context, name : discord.Option(str, autocomplete=
 
 
 #list stickers
-@bot.slash_command(guild_ids=[559637589632483339] , description="list stickers")
+@bot.slash_command(guild_ids=[credentials.guild_id] , description="list stickers")
 async def list(ctx :discord.context):
         await ctx.defer()
         await ctx.followup.send(view = menu(1), embed = emojilist(1))
 
 
 #add sticker
-@bot.slash_command(guild_ids=[559637589632483339] , description="add a sticker")
+@bot.slash_command(guild_ids=[credentials.guild_id] , description="add a sticker")
 async def add(ctx :discord.context,file: discord.Attachment, name : str):
     await ctx.defer()
     await addemoji(file.url,ctx, name)    
 
 
 #delete a sticker
-@bot.slash_command(guild_ids=[559637589632483339] , description="delete a sticker")
+@bot.slash_command(guild_ids=[credentials.guild_id] , description="delete a sticker")
 async def remove(ctx :discord.context, name : str):
     await ctx.defer()
     try:
@@ -378,7 +378,7 @@ async def remove(ctx :discord.context, name : str):
 
 
 #rename a sticker
-@bot.slash_command(guild_ids=[559637589632483339] , description="rename a sticker")
+@bot.slash_command(guild_ids=[credentials.guild_id] , description="rename a sticker")
 async def rename(ctx :discord.context, name : str, newname:str):
     await ctx.defer()
     try:
@@ -394,7 +394,7 @@ async def rename(ctx :discord.context, name : str, newname:str):
     except IndexError:
         await ctx.followup.send(content ='https://cdn.discordapp.com/attachments/901393528364621865/901616614812811274/npcmeme.png', delete_after=2)
 
-@bot.slash_command(guild_ids=[559637589632483339] , description="recatogrize a sticker")
+@bot.slash_command(guild_ids=[credentials.guild_id] , description="recatogrize a sticker")
 async def recategorize(ctx :discord.context, name : str):
     await ctx.defer()
     cursor, db = db_init()
@@ -416,7 +416,7 @@ async def recategorize(ctx :discord.context, name : str):
 
 
 #say hello
-@bot.slash_command(guild_ids=[559637589632483339] , description="say hi")
+@bot.slash_command(guild_ids=[credentials.guild_id] , description="say hi")
 async def hello(ctx :discord.context):
     await ctx.defer()
     await ctx.followup.send(content ='Hi')
