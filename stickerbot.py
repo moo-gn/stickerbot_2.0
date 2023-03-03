@@ -67,6 +67,26 @@ def emojis(name, increment = True):
     #RETURN LINK
     return data[0][0]
 
+#autocomplete context for sticker slash command options
+async def autocomplete(ctx: discord.AutocompleteContext):
+    cursor, db = db_init()
+    if ctx.value:
+        cursor.execute(f"SELECT label FROM {table};")
+    else: cursor.execute(f"SELECT label FROM {table} ORDER BY uses DESC LIMIT 25;")
+    db.close()
+    data = [item[0] for item in cursor.fetchall()]
+    if not ctx.value: data.sort()
+    match = difflib.get_close_matches(ctx.value, data, n=5, cutoff=0.6)
+    starts = [i for i in data if i.startswith(ctx.value)]
+    results = []
+    if starts:
+       results.extend(starts)
+    if match:
+        match = [i for i in match if i not in starts]
+        results.extend(match)
+    return results
+
+
 #list emoji page and takes filter returns an embed with emojis names as fields
 def emojilist(page, filter = None):
     emojilist.page = page
@@ -310,25 +330,6 @@ class autocorrect(discord.ui.View):
         await interaction.message.delete()
 
 #VIEWS VIEW VIEWS ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------     
-
-
-async def autocomplete(ctx: discord.AutocompleteContext):
-    cursor, db = db_init()
-    if ctx.value:
-        cursor.execute(f"SELECT label FROM {table};")
-    else: cursor.execute(f"SELECT label FROM {table} ORDER BY uses DESC LIMIT 25;")
-    db.close()
-    data = [item[0] for item in cursor.fetchall()]
-    if not ctx.value: data.sort()
-    match = difflib.get_close_matches(ctx.value, data, n=5, cutoff=0.6)
-    starts = [i for i in data if i.startswith(ctx.value)]
-    results = []
-    if starts:
-       results.extend(starts)
-    if match:
-        match = [i for i in match if i not in starts]
-        results.extend(match)
-    return results
 
 #slash commands -----------------------------------------------------------------------------------------------------------
 
