@@ -1,4 +1,4 @@
-# CaptainBot
+# CaptainBot 2.0
 emote bot from discord link using a mysql database to keep track. haha
     
     /sticker name        | fetch sticker
