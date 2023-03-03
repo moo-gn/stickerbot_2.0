@@ -419,7 +419,7 @@ async def recategorize(ctx :discord.context, name : str):
 @bot.slash_command(guild_ids=[559637589632483339] , description="say hi")
 async def hello(ctx :discord.context):
     await ctx.defer()
-    await ctx.followup.send(content ='Hi fucker')
+    await ctx.followup.send(content ='Hi')
 
 
 #login event
