@@ -14,7 +14,7 @@ sys.path.append("..")
 import credentials
 
 table = 'stickers'
-bot = commands.Bot(command_prefix=[commands.bot.when_mentioned,'\u200b'], case_insensitive = True, intents=discord.Intents.all())
+bot = commands.Bot(case_insensitive = True, intents=discord.Intents.all())
 
 # start the connection to pythonanywhere
 connection = SSHTunnelForwarder((credentials.ssh_website),
@@ -120,28 +120,20 @@ def pages(filter = None):
     return -(-len(data)//25)
 
 #remove name from json file and returns url
-def removeemoji(name, delete = True):
+def removeemoji(name):
 
     #DB Init
     cursor, db = db_init()
 
-    #SAVE INFORMATION
-    cursor.execute(f"SELECT link, id, uses FROM {table} WHERE label='{name}';")
-    data = cursor.fetchall()
-
     #DELETE ENTRY
-    if delete:
-        cursor.execute(f"DELETE FROM {table} WHERE label='{name}';")
-        db.commit()
+    cursor.execute(f"DELETE FROM {table} WHERE label='{name}';")
+    db.commit()
 
     #DB CLOSE
     db.close()
 
-    #RETURN LINK ID AND USES
-    return data[0]
-
 #adds emoji to the json file after checking the hash similarity
-async def addemoji(url,message):
+async def addemoji(url,ctx, name):
     #DB Init
     cursor, db = db_init()
 
@@ -153,43 +145,44 @@ async def addemoji(url,message):
         db.close()
 
         view = confirm('check the list next time')
+        msg = None
         if imghash[0]:
             try:
-                embed = discord.Embed(title=f"this looks similar to ;{imghash[2]}, you still wanna add it?")
+                embed = discord.Embed(title=f"this looks similar to {imghash[2]}, you still wanna add it?")
                 embed.set_image(url = imghash[0])
-                await message.reply(embed = embed,  view = view)
+                msg = await ctx.followup.send(embed = embed,  view = view, wait = True)
                 if await view.wait():
                     return
             except Aborted:
                 return 
-        
-        if len(message.content.split(' ')) > 2:
-            name = message.content.split(' ')[2]
-            await message.reply(content = 'choose emoji filter',  view = chooseFilter(name,[url, imghash[1]]))
+        if msg:
+            await msg.edit(content = 'choose emoji filter',  view = chooseFilter(name,[url, imghash[1]]))
         else:
-            msgb = await message.reply('reply to this message with the name')
-            try:
-                msg = await bot.wait_for('message', check = lambda i : i.reference.message_id == msgb.id)
-                name = msg.content.lower()
-            except AttributeError:
-                await msgb.edit('Aborted no reply')
-                return
-            await msgb.edit(content = 'choose emoji filter',  view = chooseFilter(name,[url, imghash[1]]))
-        
+            await ctx.followup.send(content = 'choose emoji filter',  view = chooseFilter(name,[url, imghash[1]]))
     else:
-        await message.reply('only images and GIFs')
+        await ctx.followup.send('only images and GIFs')
     
 #renames emoji from file and json
-async def renameemoji(message):
-    name = message.content.split(' ')[-2]
-    newname = message.content.split(' ')[-1]
-    content = removeemoji(name, delete = False)
-    view = chooseFilter(newname, content[:2], content[2])
-    await message.channel.send(content = 'done renaming',  view = view)
-    if await view.wait():
-        return
+async def renameemoji(msg ,name , newname):
+    cursor, db = db_init()
+    cursor.execute(f"SELECT link, id, uses, category FROM {table} WHERE label='{name}';")
+    content = cursor.fetchall()[0]
+    #DB Init
+    #INSERT NEW ENTRY TO DATABASE
+    cursor.execute(f"INSERT INTO {table}(label, category, uses, id, link) values ('{newname}', '{content[3]}', {content[2]}, '{content[1]}', '{content[0]}');")            
+    db.commit()
+    #CLOSE DB
+    db.close()
+    #MSG FINISHED WITH ADDING
+    await msg.edit(content = 'done renaming')
     removeemoji(name)
 
+async def recat(msg, name,link,id,uses):
+    view = chooseFilter(name, (link, id), uses)
+    await msg.edit(content = 'choose a new category',  view = view)
+    removeemoji(name)
+    await msg.edit(content = 'done recategorizing')
+    
 
 #VIEWS VIEW VIEWS----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 # view which initialize component part of the list function
@@ -245,6 +238,7 @@ class chooseFilter(discord.ui.View):
         ]
     @discord.ui.select(placeholder='Set filter', min_values=1, max_values=1, options=options)
     async def dropdown(self, select: discord.ui.select, interaction: discord.Interaction):
+        msg_id = interaction.message.id
         try:
             #DB Init
             cursor, db = db_init()
@@ -259,8 +253,7 @@ class chooseFilter(discord.ui.View):
         #if duplicate name this error will raise
         except IntegrityError:
             try:
-                #DB Init
-                cursor, db = db_init()
+                db.close()
                 #prompt user to confirm replacment
                 view = confirm('Aborted')
                 embed = discord.Embed(title=f"you sure you wanna replace the current ;{self.name}?")
@@ -268,6 +261,8 @@ class chooseFilter(discord.ui.View):
                 await interaction.response.edit_message(embed = embed,  view = view)
                 if await view.wait():
                     return
+                #DB Init
+                cursor, db = db_init()
                 #replace database entry
                 cursor.execute(f"REPLACE INTO {table}(label, category, uses, id, link) values ('{self.name}', '{select.values[0]}', {self.uses}, '{self.content[1]}', '{self.content[0]}');")            
                 db.commit()
@@ -275,7 +270,7 @@ class chooseFilter(discord.ui.View):
                 db.close()
                 #followup message
                 self.stop()
-                await interaction.followup.send(content='done')
+                await interaction.followup.edit_message(msg_id, content='done')
             except Aborted:
                 return
 
@@ -292,7 +287,7 @@ class confirm(discord.ui.View):
 
     @discord.ui.button(label='YES', style=discord.ButtonStyle.green)
     async def yes(self, button: discord.ui.Button, interaction: discord.Interaction):
-        await interaction.message.delete()
+        await interaction.message.edit(content = "thinking..", embed=None, view=None)
         self.stop()
     @discord.ui.button(label='NO', style=discord.ButtonStyle.red)
     async def no(self, button: discord.ui.Button, interaction: discord.Interaction):
@@ -317,106 +312,119 @@ class autocorrect(discord.ui.View):
 #VIEWS VIEW VIEWS ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------     
 
 
-#main events
+async def autocomplete(ctx: discord.AutocompleteContext):
+    cursor, db = db_init()
+    if ctx.value:
+        cursor.execute(f"SELECT label FROM {table};")
+    else: cursor.execute(f"SELECT label FROM {table} ORDER BY uses DESC LIMIT 25;")
+    db.close()
+    data = [item[0] for item in cursor.fetchall()]
+    if not ctx.value: data.sort()
+    match = difflib.get_close_matches(ctx.value, data, n=5, cutoff=0.6)
+    starts = [i for i in data if i.startswith(ctx.value)]
+    results = []
+    if starts:
+       results.extend(starts)
+    if match:
+        match = [i for i in match if i not in starts]
+        results.extend(match)
+    return results
 
+#slash commands -----------------------------------------------------------------------------------------------------------
+
+#sticker fetch
+@bot.slash_command(guild_ids=[559637589632483339] , description="fetch a sticker")
+async def sticker(ctx :discord.context, name : discord.Option(str, autocomplete=autocomplete)):
+    try:
+        await ctx.defer()
+        name = emojis(name)
+        await ctx.followup.send(content = name)
+    except IndexError:
+        await ctx.respond(content ='https://cdn.discordapp.com/attachments/901393528364621865/901616614812811274/npcmeme.png', delete_after=2)
+
+
+#list stickers
+@bot.slash_command(guild_ids=[559637589632483339] , description="list stickers")
+async def list(ctx :discord.context):
+        await ctx.defer()
+        await ctx.followup.send(view = menu(1), embed = emojilist(1))
+
+
+#add sticker
+@bot.slash_command(guild_ids=[559637589632483339] , description="add a sticker")
+async def add(ctx :discord.context,file: discord.Attachment, name : str):
+    await ctx.defer()
+    await addemoji(file.url,ctx, name)    
+
+
+#delete a sticker
+@bot.slash_command(guild_ids=[559637589632483339] , description="delete a sticker")
+async def remove(ctx :discord.context, name : str):
+    await ctx.defer()
+    try:
+        #prompt user to confirm delete process
+        view = confirm('Aborted')
+        embed = discord.Embed(title=f"you sure you wanna delete {name}?")
+        embed.set_image(url = emojis(name, increment= False))
+        msg = await ctx.followup.send(embed = embed,  view = view, wait= True)
+        if await view.wait():
+            return
+        removeemoji(name)
+        await msg.edit(content = 'get it outta here')
+    except Aborted:
+        return
+    except IndexError:
+        await ctx.followup.send(content ='https://cdn.discordapp.com/attachments/901393528364621865/901616614812811274/npcmeme.png', delete_after=2)   
+
+
+#rename a sticker
+@bot.slash_command(guild_ids=[559637589632483339] , description="rename a sticker")
+async def rename(ctx :discord.context, name : str, newname:str):
+    await ctx.defer()
+    try:
+        view = confirm('Aborted')
+        embed = discord.Embed(title=f"you sure you wanna rename {name} to {newname}?")
+        embed.set_image(url = emojis(name, increment=False))
+        msg = await ctx.followup.send(embed = embed,  view = view)
+        if await view.wait():
+            return
+        await renameemoji(msg,name,newname)
+    except Aborted:
+        return
+    except IndexError:
+        await ctx.followup.send(content ='https://cdn.discordapp.com/attachments/901393528364621865/901616614812811274/npcmeme.png', delete_after=2)
+
+@bot.slash_command(guild_ids=[559637589632483339] , description="recatogrize a sticker")
+async def recategorize(ctx :discord.context, name : str):
+    await ctx.defer()
+    cursor, db = db_init()
+    cursor.execute(f"SELECT link, id, uses, category FROM {table} WHERE label='{name}';")
+    content = cursor.fetchall()[0]
+    db.close()
+    try:
+        view = confirm('Aborted')
+        embed = discord.Embed(title=f"you sure you wanna recatogrize {name} from {content[3]}?")
+        embed.set_image(url = emojis(name, increment=False))
+        msg = await ctx.followup.send(embed = embed,  view = view)
+        if await view.wait():
+            return
+        await recat(msg,name,content[0],content[1],content[2])
+    except Aborted:
+        return
+    except IndexError:
+        await ctx.followup.send(content ='https://cdn.discordapp.com/attachments/901393528364621865/901616614812811274/npcmeme.png', delete_after=2)
+
+
+#say hello
+@bot.slash_command(guild_ids=[559637589632483339] , description="say hi")
+async def hello(ctx :discord.context):
+    await ctx.defer()
+    await ctx.followup.send(content ='Hi fucker')
+
+
+#login event
 @bot.event
 async def on_ready():
     print('We have logged in as {0.user}'.format(bot) + ' ' + datetime.datetime.utcnow().strftime("%m/%d/%Y %H:%M:%S UTC"))
 
-@bot.event
-async def on_message(message):
-
-    message.content = message.content.lower()
-    if message.author == bot.user:
-            return
-    
-    #main command to fetch emoji using prefix
-
-    prefix = ';'
-    if prefix in message.content:
-        msg = message.content.split()
-        for word in msg:
-            if word.startswith(prefix):
-                name = word.strip(prefix)
-                break
-        try:
-            await message.channel.send(content = emojis(name))
-        except IndexError:
-            #DB Init
-            cursor, db = db_init()
-            cursor.execute(f"SELECT label FROM {table};")
-            #CLOSE DB
-            db.close()
-            data = [item[0] for item in cursor.fetchall()]
-            match = difflib.get_close_matches(name, data, n=1, cutoff=0.6)
-            if match:
-                await message.channel.send(content = f'did you mean ;{match[0]} ?', view = autocorrect(match[0]))
-            else:
-                await message.channel.send(content ='https://cdn.discordapp.com/attachments/901393528364621865/901616614812811274/npcmeme.png', delete_after=1)
-
-    #checks if mentioned for the admin commands
-
-    elif bot.user.mentioned_in(message):
-    
-        #list command
-
-        if message.content.startswith('list') or message.content.endswith('list'):
-            await message.channel.send(view = menu(1), embed = emojilist(1))
-    
-        #add command
-
-        elif 'add' in message.content.split(' ') and message.content.split(' ').index('add') == 1:
-            msg = message
-            # Added this line to fetch reply content if it exists
-            if message.reference:
-                msg = await message.channel.fetch_message(message.reference.message_id)
-
-            if len(msg.attachments) == 0:
-                await message.reply(content ='no attachment dickhead')
-            else:
-                await addemoji(msg.attachments[0].url,message)     
-    
-        #remove command
-
-        elif 'remove' in message.content.split(' '):    
-                try:
-                    #prompt user to confirm delete process
-                    name = message.content.split(' ')[-1]
-                    view = confirm('Aborted')
-                    embed = discord.Embed(title=f"you sure you wanna delete ;{name}?")
-                    embed.set_image(url = emojis(name, increment= False))
-                    msg = await message.reply(embed = embed,  view = view)
-                    if await view.wait():
-                        return
-                    removeemoji(name)
-                    await message.reply(content = 'get it outta here')
-                except Aborted:
-                    return
-                except IndexError:
-                    await message.channel.send(content ='https://cdn.discordapp.com/attachments/901393528364621865/901616614812811274/npcmeme.png', delete_after=1)
-    
-        #rename command
-
-        elif 'rename' in message.content.split(' '):
-                try:
-                    #prompt user to confirm rename process
-                    name = message.content.split(' ')[-2]
-                    newname = message.content.split(' ')[-1]
-                    view = confirm('Aborted')
-                    embed = discord.Embed(title=f"you sure you wanna rename ;{name} to ;{newname}?")
-                    embed.set_image(url = emojis(name, increment=False))
-                    msg = await message.reply(embed = embed,  view = view)
-                    if await view.wait():
-                        return
-                    await renameemoji(message)
-                except Aborted:
-                    return
-                except IndexError:
-                    await message.channel.send(content ='https://cdn.discordapp.com/attachments/901393528364621865/901616614812811274/npcmeme.png', delete_after=1)
-    
-        #pleasantries
-
-        elif message.content.startswith('hello') or message.content.endswith('hello'):
-            await message.reply(content ='Hi')
-
-bot.run(credentials.Captain_Bot)
+bot.run('MTA4MTAxNzc4MjIxMDE0NjMwNA.GIawA8.jNxO0muLOHIamFFRM8COAG_9QnfErMU8tg8ZgI')
