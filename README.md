@@ -1,10 +1,10 @@
 # CaptainBot
 emote bot from discord link using a mysql database to keep track. haha
     
-    ;emoteName| general call to send emoji
-    
-    @bot or reply to bot with one of the following:
-    list | provides a list with 3 filters
-    add  |(attach to message or reply to a message with attachment)
-    remove| emoteName
-    rename| oldName newName
+    /sticker name        | fetch sticker
+    /add attachment name | add attachment with name
+    /remove name         | remove sticker
+    /rename name newName | rename sticker to new name
+    /recategorize name   | change the category of sticker
+    /list                | send dicord embed with list of stickers
+    /hello               | exchange pleasantries
