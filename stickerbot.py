@@ -313,19 +313,33 @@ class confirm(discord.ui.View):
     async def no(self, button: discord.ui.Button, interaction: discord.Interaction):
         await interaction.message.edit(content= self.msg, embed=None, view = self.clear_items())
         raise Aborted
-    
+
+#confirm suggested  auto correction to send emoji or abort
+
+class autocorrect(discord.ui.View):
+    def __init__(self, name):
+        super().__init__(timeout=None)
+        self.name = name
+
+    @discord.ui.button(label='YES', style=discord.ButtonStyle.green)
+    async def yes(self, button: discord.ui.Button, interaction: discord.Interaction):
+        await interaction.message.edit(content=emojis(self.name), view = self.clear_items())
+
+    @discord.ui.button(label='NO', style=discord.ButtonStyle.red)
+    async def no(self, button: discord.ui.Button, interaction: discord.Interaction):
+        await interaction.message.delete()
+
 #VIEWS VIEW VIEWS ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------     
 
 #slash commands -----------------------------------------------------------------------------------------------------------
 
 #sticker fetch
 @bot.slash_command(guild_ids=[credentials.guild_id] , description="fetch a sticker")
-async def sticker(ctx :discord.context, name : discord.Option(str, autocomplete=autocomplete), msg: discord.Option(str, "Enter your friend's name", required = False, default = '')):
+async def sticker(ctx :discord.context, name : discord.Option(str, autocomplete=autocomplete)):
     try:
         await ctx.defer()
         name = emojis(name)
-        response = requests.get(name)
-        await ctx.followup.send(content = msg, file = discord.File(BytesIO(response.content), f"{name}.png"))
+        await ctx.followup.send(content = name)
     except IndexError:
         await ctx.respond(content ='https://cdn.discordapp.com/attachments/901393528364621865/901616614812811274/npcmeme.png', delete_after=2)
 
