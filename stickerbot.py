@@ -313,22 +313,7 @@ class confirm(discord.ui.View):
     async def no(self, button: discord.ui.Button, interaction: discord.Interaction):
         await interaction.message.edit(content= self.msg, embed=None, view = self.clear_items())
         raise Aborted
-
-#confirm suggested  auto correction to send emoji or abort
-
-# class autocorrect(discord.ui.View):
-#     def __init__(self, name):
-#         super().__init__(timeout=None)
-#         self.name = name
-
-#     @discord.ui.button(label='YES', style=discord.ButtonStyle.green)
-#     async def yes(self, button: discord.ui.Button, interaction: discord.Interaction):
-#         await interaction.message.edit(content=emojis(self.name), view = self.clear_items())
-
-#     @discord.ui.button(label='NO', style=discord.ButtonStyle.red)
-#     async def no(self, button: discord.ui.Button, interaction: discord.Interaction):
-#         await interaction.message.delete()
-
+    
 #VIEWS VIEW VIEWS ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------     
 
 #slash commands -----------------------------------------------------------------------------------------------------------
