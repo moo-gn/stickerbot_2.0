@@ -342,7 +342,6 @@ async def sticker(ctx :discord.context, name : discord.Option(str, autocomplete=
         encoding = name.split('.')[-1]
         response = requests.get(name)
         await ctx.followup.send(content = msg, file = discord.File(BytesIO(response.content), f"{name}.{encoding}"))
-        await ctx.followup.send(content = name)
     except IndexError:
         await ctx.respond(content ='https://cdn.discordapp.com/attachments/901393528364621865/901616614812811274/npcmeme.png', delete_after=2)
 
