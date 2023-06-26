@@ -351,17 +351,24 @@ async def list(ctx :discord.context):
         await ctx.followup.send(view = menu(1), embed = emojilist(1))
 
 
-#add sticker
+#add sticker slash command
 @bot.slash_command(guild_ids=[credentials.guild_id] , description="add a sticker")
 async def add(ctx :discord.context, file: discord.Attachment, name : str):
     await ctx.defer()
     msg = await ctx.respond(content="adding..", file = await file.to_file())
     await addemoji(msg.attachments[0].url ,ctx, name)
 
+#add sticker @ command
 @bot.command(guild_ids=[credentials.guild_id])
 async def add(ctx, arg):
-    msg = await ctx.channel.fetch_message(ctx.message.reference.message_id)
-    await addemoji(msg.attachments[0].url ,ctx, arg)
+    if ctx.message.reference:
+        msg = await ctx.channel.fetch_message(ctx.message.reference.message_id)
+        if msg.attachments:
+            await addemoji(msg.attachments[0].url ,ctx, arg)
+        else:
+            await ctx.message.reply("no attachment in the reply")
+    else:
+        await ctx.message.reply("reply to attachment")
 
 #delete a sticker
 @bot.slash_command(guild_ids=[credentials.guild_id] , description="delete a sticker")
