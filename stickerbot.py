@@ -170,17 +170,16 @@ async def addemoji(url,ctx, name):
             try:
                 embed = discord.Embed(title=f"this looks similar to {imghash[2]}, you still wanna add it?")
                 embed.set_image(url = imghash[0])
-                msg = await ctx.followup.send(embed = embed,  view = view, wait = True)
+                msg = await ctx.send(embed = embed,  view = view)
                 if await view.wait():
                     return
             except Aborted:
                 return 
         if msg:
-            await msg.edit(content = 'choose emoji filter',  view = chooseFilter(name,[url, imghash[1]]))
-        else:
-            await ctx.followup.send(content = 'choose emoji filter',  view = chooseFilter(name,[url, imghash[1]]))
+            await msg.delete()
+        await ctx.send(content = 'choose emoji filter',  view = chooseFilter(name,[url, imghash[1]]))
     else:
-        await ctx.followup.send('only images and GIFs')
+        await ctx.send('only images and GIFs')
     
 #renames emoji from file and json
 async def renameemoji(msg ,name , newname):
@@ -356,9 +355,13 @@ async def list(ctx :discord.context):
 @bot.slash_command(guild_ids=[credentials.guild_id] , description="add a sticker")
 async def add(ctx :discord.context, file: discord.Attachment, name : str):
     await ctx.defer()
-    msg = await ctx.send(content="adding..", file = await file.to_file())
+    msg = await ctx.respond(content="adding..", file = await file.to_file())
     await addemoji(msg.attachments[0].url ,ctx, name)
 
+@bot.command(guild_ids=[credentials.guild_id])
+async def add(ctx, arg):
+    msg = await ctx.channel.fetch_message(ctx.message.reference.message_id)
+    await addemoji(msg.attachments[0].url ,ctx, arg)
 
 #delete a sticker
 @bot.slash_command(guild_ids=[credentials.guild_id] , description="delete a sticker")
