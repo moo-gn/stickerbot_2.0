@@ -354,9 +354,10 @@ async def list(ctx :discord.context):
 
 #add sticker
 @bot.slash_command(guild_ids=[credentials.guild_id] , description="add a sticker")
-async def add(ctx :discord.context,file: discord.Attachment, name : str):
+async def add(ctx :discord.context, file: discord.Attachment, name : str):
     await ctx.defer()
-    await addemoji(file.url,ctx, name)    
+    msg = await ctx.send(content="adding..", file = await file.to_file())
+    await addemoji(msg.attachments[0].url ,ctx, name)
 
 
 #delete a sticker
@@ -429,4 +430,4 @@ async def hello(ctx :discord.context):
 async def on_ready():
     print('We have logged in as {0.user}'.format(bot) + ' ' + datetime.datetime.utcnow().strftime("%m/%d/%Y %H:%M:%S UTC"))
 
-bot.run(credentials.Captain_Moji)
+bot.run(credentials.Music_Test)
