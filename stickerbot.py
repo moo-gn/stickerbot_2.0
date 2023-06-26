@@ -440,4 +440,4 @@ async def hello(ctx :discord.context):
 async def on_ready():
     print('We have logged in as {0.user}'.format(bot) + ' ' + datetime.datetime.utcnow().strftime("%m/%d/%Y %H:%M:%S UTC"))
 
-bot.run(credentials.Music_Test)
+bot.run(credentials.Captain_Moji)
