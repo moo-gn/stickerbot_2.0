@@ -29,7 +29,7 @@ def db_init():
 	"""
 	
 	# Ensure SSH connection is active
-	if(connection.is_active):
+	if(not connection.is_active):
 		connection.start()
 
   	# Connect
