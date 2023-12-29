@@ -14,7 +14,7 @@ sys.path.append("..")
 import credentials
 
 table = 'stickers'
-bot = commands.Bot(command_prefix=[commands.bot.when_mentioned,'\u200b'], case_insensitive = True, intents=discord.Intents.all())
+bot = commands.Bot(command_prefix=commands.when_mentioned_or('\u200b'), case_insensitive = True, intents=discord.Intents.all())
 
 # start the connection to pythonanywhere
 connection = SSHTunnelForwarder((credentials.ssh_website),
@@ -347,7 +347,7 @@ async def sticker(ctx :discord.context, name : discord.Option(str, autocomplete=
 	try:
 		await ctx.defer()
 		name = emojis(name)
-		encoding = name.split('.')[-1]
+		encoding = name.split('.')[-1].split('?')[0]
 		response = requests.get(name)
 		await ctx.followup.send(content = msg, file = discord.File(BytesIO(response.content), f"{name}.{encoding}"))
 	except IndexError:
