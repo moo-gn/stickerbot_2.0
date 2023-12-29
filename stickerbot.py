@@ -156,12 +156,17 @@ def removeemoji(name):
 	#DB CLOSE
 	db.close()
 
+def validFormat(str):
+	for s in ['.png', '.gif','.webp','.jpg','.jpeg']:
+		if str.find(s) > 0:
+			return True
+	return False
 #adds emoji to the json file after checking the hash similarity
 async def addemoji(url,ctx, name):
 	#DB Init
 	cursor, db = db_init()
 
-	if url.lower().endswith(('.png', '.gif','.webp','.jpg','.jpeg')):
+	if validFormat(url.lower()):
 		response = requests.get(url)
 		imghash = is_similar(BytesIO(response.content),cursor,cutoff=9)
 
