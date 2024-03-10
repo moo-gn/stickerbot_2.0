@@ -346,10 +346,9 @@ class autocorrect(discord.ui.View):
 async def sticker(ctx :discord.context, name : discord.Option(str, autocomplete=autocomplete), msg: discord.Option(str, "Enter your friend's name", required = False, default = '')):
 	try:
 		await ctx.defer()
-		name = emojis(name)
-		encoding = name.split('.')[-1].split('?')[0]
-		response = requests.get(name)
-		await ctx.followup.send(content = msg, file = discord.File(BytesIO(response.content), f"{name}.{encoding}"))
+		embed = discord.Embed(title=msg, color=0x8dffd3)
+		embed.set_image(url = emojis(name))
+		await ctx.followup.send(embed = embed)
 	except IndexError:
 		await ctx.respond(content ='https://cdn.discordapp.com/attachments/901393528364621865/901616614812811274/npcmeme.png', delete_after=2)
 
